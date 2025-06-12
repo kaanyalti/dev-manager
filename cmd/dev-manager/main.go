@@ -32,6 +32,43 @@ var configCmd = &cobra.Command{
 	Long:  `Commands for managing dev-manager configuration.`,
 }
 
+var configValidateCmd = &cobra.Command{
+	Use:   "validate",
+	Short: "Validate the configuration",
+	Long: `Validate the current configuration for required fields and structure.
+Shows a detailed report of any validation errors found.
+
+Example:
+  dev-manager config validate --file config.yaml
+  dev-manager config validate -f config.yaml`,
+	Run: func(cmd *cobra.Command, args []string) {
+		cfgPath, _ := cmd.Flags().GetString("file")
+
+		mgr, err := config.NewManager(cfgPath)
+		if err != nil {
+			log.Fatalf("failed to create config manager: %v", err)
+		}
+
+		if err := mgr.Load(); err != nil {
+			log.Fatalf("failed to load config: %v", err)
+		}
+
+		cfg := mgr.GetConfig()
+
+		fmt.Printf("Validating configuration at %s...\n\n", mgr.Path())
+
+		if err := cfg.Validate(); err != nil {
+			if validationErr, ok := err.(*config.ValidationError); ok {
+				fmt.Println(validationErr.Error())
+				os.Exit(1)
+			}
+			log.Fatalf("validation failed: %v", err)
+		}
+
+		fmt.Println("Configuration is valid!")
+	},
+}
+
 var configShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show the current configuration",
@@ -864,9 +901,13 @@ func init() {
 
 	// Add config subcommands
 	configCmd.AddCommand(configShowCmd)
+	configCmd.AddCommand(configValidateCmd)
 
 	// Flags for config show command
 	configShowCmd.Flags().Bool("raw", false, "Show raw YAML content")
+
+	// Flags for config validate command
+	configValidateCmd.Flags().StringP("file", "f", "", "Path to the configuration file to validate")
 
 	// Flags for init command
 	initCmd.Flags().StringP("config", "c", "", "Path to configuration file")

@@ -1,0 +1,39 @@
+# Missing workspacePath
+updateFrequency: 30m
+
+repositories:
+  - name: test-repo-1
+    # Missing url
+    path: /path/to/repo1
+    branch: main
+    lastSync: "2024-03-20T10:00:00Z"
+
+  - name: test-repo-2
+    url: https://github.com/user/repo2
+    # Missing path
+    branch: main
+    lastSync: "2024-03-20T10:00:00Z"
+
+  - name: test-repo-3
+    url: https://github.com/user/repo3
+    path: /path/to/repo3
+    # Missing branch
+    lastSync: "2024-03-20T10:00:00Z"
+
+  - name: test-repo-4
+    url: https://github.com/user/repo4
+    path: /path/to/repo4
+    branch: main
+    # Missing lastSync
+
+tools:
+  - name: tool-1
+    # Missing command
+    description: "Test tool 1"
+
+  - name: tool-2
+    command: "echo"
+    # Missing description
+
+  - name: tool-3
+    # Missing both command and description 
