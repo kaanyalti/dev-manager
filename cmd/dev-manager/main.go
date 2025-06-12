@@ -73,22 +73,10 @@ var initCmd = &cobra.Command{
 	},
 }
 
-var syncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "Sync all repositories and configurations",
-	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Implement sync
-		fmt.Println("Syncing repositories and configurations...")
-	},
-}
-
 var reposCmd = &cobra.Command{
 	Use:   "repos",
 	Short: "Manage repositories",
-	Long:  `Manage repositories in your development environment.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
-	},
+	Long:  `Commands for managing repositories in your workspace.`,
 }
 
 var repoAddCmd = &cobra.Command{
@@ -171,6 +159,80 @@ Example:
 		} else {
 			fmt.Println("Repository will be cloned during the next sync.")
 		}
+	},
+}
+
+var repoSyncCmd = &cobra.Command{
+	Use:   "sync",
+	Short: "Sync all managed repositories",
+	Long: `Update all managed repositories by fetching and rebasing them.
+This will fetch the latest changes from the remote and rebase your local branch.
+
+Example:
+  dev-manager repos sync`,
+	Run: func(cmd *cobra.Command, args []string) {
+		cfgPath, _ := cmd.Flags().GetString("config")
+
+		mgr, err := config.NewManager(cfgPath)
+		if err != nil {
+			log.Fatalf("failed to create config manager: %v", err)
+		}
+
+		if err := mgr.Load(); err != nil {
+			log.Fatalf("failed to load config: %v", err)
+		}
+
+		cfg := mgr.GetConfig()
+
+		if len(cfg.Repositories) == 0 {
+			fmt.Println("No repositories found in configuration.")
+			os.Exit(0)
+		}
+
+		fmt.Printf("Found %d repositories to sync.\n", len(cfg.Repositories))
+
+		for i, repo := range cfg.Repositories {
+			fmt.Printf("\n[%d/%d] Syncing %s...\n", i+1, len(cfg.Repositories), repo.Name)
+
+			gitRepo := git.New(repo.Path, repo.URL, repo.Branch)
+
+			// Check if directory exists
+			if _, err := os.Stat(repo.Path); os.IsNotExist(err) {
+				fmt.Printf("Repository directory not found. Cloning %s...\n", repo.URL)
+				if err := gitRepo.Clone(); err != nil {
+					fmt.Printf("Failed to clone repository: %v\n", err)
+					continue
+				}
+			} else {
+				// Check if repository is clean
+				isClean, err := gitRepo.IsClean()
+				if err != nil {
+					fmt.Printf("Failed to check repository status: %v\n", err)
+					continue
+				}
+				if !isClean {
+					fmt.Printf("Repository has uncommitted changes. Skipping sync.\n")
+					continue
+				}
+
+				// Update repository
+				if err := gitRepo.Update(); err != nil {
+					fmt.Printf("Failed to update repository: %v\n", err)
+					continue
+				}
+			}
+
+			// Update last sync time
+			cfg.Repositories[i].LastSync = time.Now()
+			fmt.Printf("Successfully synced %s\n", repo.Name)
+		}
+
+		// Save configuration with updated sync times
+		if err := mgr.Save(); err != nil {
+			log.Fatalf("failed to save configuration: %v", err)
+		}
+
+		fmt.Println("\nSync completed!")
 	},
 }
 
@@ -735,7 +797,6 @@ var sshRemoveCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(initCmd)
-	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(reposCmd)
 
 	// Flags for init command
@@ -743,8 +804,9 @@ func init() {
 	initCmd.Flags().StringP("workspace", "w", "", "Workspace directory for cloning repositories")
 
 	reposCmd.AddCommand(repoAddCmd)
-	reposCmd.AddCommand(repoRemoveCmd)
 	reposCmd.AddCommand(repoListCmd)
+	reposCmd.AddCommand(repoRemoveCmd)
+	reposCmd.AddCommand(repoSyncCmd)
 
 	// Flags for add-repo command
 	repoAddCmd.Flags().StringP("name", "n", "", "Name of the repository")
