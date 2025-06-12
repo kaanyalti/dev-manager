@@ -37,8 +37,10 @@ func (r *Repository) Clone() error {
 	}
 
 	cmd := exec.Command("git", "clone", "-b", r.Branch, r.URL, r.Path)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to clone repository: %s, %w", string(output), err)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to clone repository: %w", err)
 	}
 
 	return nil
