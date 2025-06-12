@@ -43,13 +43,20 @@ func (m *SSHManager) ListPrivateKeys() ([]string, error) {
 		return nil, err
 	}
 	var keys []string
+	privateSuffixes := []string{"id_ed25519", "id_rsa", "id_ecdsa", "id_dsa"}
 	for _, f := range files {
 		if f.IsDir() {
 			continue
 		}
 		name := f.Name()
-		if name == "id_rsa" || name == "id_ed25519" || name == "id_ecdsa" || name == "id_dsa" {
-			keys = append(keys, filepath.Join(sshDir, name))
+		if filepath.Ext(name) == ".pub" {
+			continue
+		}
+		for _, suffix := range privateSuffixes {
+			if len(name) >= len(suffix) && name[len(name)-len(suffix):] == suffix {
+				keys = append(keys, filepath.Join(sshDir, name))
+				break
+			}
 		}
 	}
 	return keys, nil
