@@ -291,6 +291,47 @@ var sshListCmd = &cobra.Command{
 	},
 }
 
+var sshAddAgentCmd = &cobra.Command{
+	Use:   "add-agent",
+	Short: "Add a private SSH key to the ssh-agent",
+	Run: func(cmd *cobra.Command, args []string) {
+		mgr, err := ssh.NewSSHManager()
+		if err != nil {
+			log.Fatalf("Failed to initialize SSH manager: %v", err)
+		}
+
+		keyPath, _ := cmd.Flags().GetString("key")
+		if keyPath == "" {
+			// List available keys and prompt for selection
+			keys, err := mgr.ListPrivateKeys()
+			if err != nil {
+				log.Fatalf("Failed to list SSH keys: %v", err)
+			}
+			if len(keys) == 0 {
+				fmt.Println("No SSH keys found in ~/.ssh.")
+				os.Exit(1)
+			}
+			fmt.Println("Available SSH keys:")
+			for i, k := range keys {
+				fmt.Printf("  [%d] %s\n", i+1, k)
+			}
+			fmt.Print("Select a key to add to the agent (number): ")
+			var idx int
+			_, err = fmt.Scanln(&idx)
+			if err != nil || idx < 1 || idx > len(keys) {
+				fmt.Println("Invalid selection.")
+				os.Exit(1)
+			}
+			keyPath = keys[idx-1]
+		}
+
+		if err := mgr.AddKeyToAgent(keyPath); err != nil {
+			log.Fatalf("Failed to add key to agent: %v", err)
+		}
+		fmt.Printf("Key added to agent: %s\n", keyPath)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(syncCmd)
@@ -308,10 +349,12 @@ func init() {
 	sshCmd.AddCommand(sshInitCmd)
 	sshCmd.AddCommand(sshGenerateCmd)
 	sshCmd.AddCommand(sshListCmd)
+	sshCmd.AddCommand(sshAddAgentCmd)
 	rootCmd.AddCommand(sshCmd)
 
 	sshGenerateCmd.Flags().String("algo", "", "Key algorithm (ed25519, rsa, ecdsa)")
 	sshGenerateCmd.Flags().String("name", "", "Name for the key (optional)")
+	sshAddAgentCmd.Flags().String("key", "", "Path to the private key to add to the agent")
 }
 
 func main() {
