@@ -106,6 +106,9 @@ Available subcommands:
   copy-public    # Copy the public key for a given private SSH key to the clipboard
   remove         # Remove a private SSH key from the agent and delete it from disk
 `,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
 
 var sshInitCmd = &cobra.Command{
