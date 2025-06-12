@@ -95,14 +95,14 @@ var sshCmd = &cobra.Command{
 	Short: "Manage SSH keys and agent for your dev environment",
 	Long: `SSH key and agent management for dev-manager.
 
-Planned subcommands:
+Available subcommands:
   init           # Comprehensive SSH environment setup (checks, agent, keys)
   generate       # Generate a new SSH key pair
-  list           # List available SSH key pairs in ~/.ssh
-  add-agent      # Add a key to the ssh-agent
+  list           # List available SSH key pairs and agent-loaded keys
+  add-agent      # Add a private SSH key to the ssh-agent
   status         # Show SSH environment status (tooling, agent, keys, agent keys)
-  print-public   # Print the public key (for copy-paste to GitHub/GitLab)
-  copy-public    # Copy the public key to clipboard (optional, cross-platform)
+  print-public   # Print the public key for a given private SSH key
+  copy-public    # Copy the public key for a given private SSH key to the clipboard
 `,
 }
 
