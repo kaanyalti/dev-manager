@@ -191,6 +191,69 @@ var sshInitCmd = &cobra.Command{
 	},
 }
 
+var sshGenerateCmd = &cobra.Command{
+	Use:   "generate",
+	Short: "Generate a new SSH key pair",
+	Run: func(cmd *cobra.Command, args []string) {
+		mgr, err := ssh.NewSSHManager()
+		if err != nil {
+			log.Fatalf("Failed to initialize SSH manager: %v", err)
+		}
+
+		algo, _ := cmd.Flags().GetString("algo")
+		name, _ := cmd.Flags().GetString("name")
+
+		if algo == "" {
+			fmt.Print("Enter key algorithm (ed25519/rsa/ecdsa) [ed25519]: ")
+			fmt.Scanln(&algo)
+			if algo == "" {
+				algo = "ed25519"
+			}
+		}
+
+		if name == "" {
+			fmt.Print("Enter a name for the key (optional): ")
+			fmt.Scanln(&name)
+		}
+
+		// Determine intended key path
+		sshDir := filepath.Join(mgr.HomeDir, ".ssh")
+		keyFile := "id_" + algo
+		if name != "" {
+			keyFile = name + "_id_" + algo
+		}
+		keyPath := filepath.Join(sshDir, keyFile)
+		if _, err := os.Stat(keyPath); err == nil {
+			fmt.Printf("A key with this name and algorithm already exists: %s\n", keyPath)
+			fmt.Println("Aborting to avoid overwriting existing key.")
+			os.Exit(1)
+		}
+
+		keyPath, err = mgr.GenerateKey(algo, name)
+		if err != nil {
+			log.Fatalf("Failed to generate SSH key: %v", err)
+		}
+		fmt.Printf("New SSH key pair generated: %s\n", keyPath)
+
+		if err := mgr.PrintPublicKey(keyPath); err != nil {
+			log.Printf("Could not print public key: %v", err)
+		}
+
+		// Offer to add to agent
+		var resp string
+		fmt.Print("Would you like to add this key to the ssh-agent? (Y/n): ")
+		fmt.Scanln(&resp)
+		if resp == "" || resp == "Y" || resp == "y" {
+			if err := mgr.AddKeyToAgent(keyPath); err != nil {
+				log.Fatalf("Failed to add key to agent: %v", err)
+			}
+			fmt.Println("Key added to agent.")
+		} else {
+			fmt.Println("Key not added to agent.")
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(syncCmd)
@@ -206,7 +269,11 @@ func init() {
 
 	// SSH command group and subcommands
 	sshCmd.AddCommand(sshInitCmd)
+	sshCmd.AddCommand(sshGenerateCmd)
 	rootCmd.AddCommand(sshCmd)
+
+	sshGenerateCmd.Flags().String("algo", "", "Key algorithm (ed25519, rsa, ecdsa)")
+	sshGenerateCmd.Flags().String("name", "", "Name for the key (optional)")
 }
 
 func main() {
