@@ -19,6 +19,43 @@ A command-line tool to manage your development environment, including Git reposi
   - Copy public keys to clipboard
   - Remove SSH keys
 
+## Planned Features
+
+### Repository Management
+- [ ] Interactive repository selection with fuzzy search
+- [ ] Support for multiple branches per repository
+- [ ] Automatic branch switching based on ticket/issue
+- [ ] Repository templates for quick project setup
+- [ ] Git hooks management
+- [ ] Repository backup and restore
+- [ ] Repository health checks (dependencies, security, etc.)
+
+### SSH Management
+- [ ] SSH config file management
+- [ ] SSH key rotation
+- [ ] SSH key backup and restore
+- [ ] SSH key usage statistics
+- [ ] SSH key expiration management
+
+### Tool Configuration
+- [ ] Neovim configuration management
+- [ ] Tmux configuration management
+- [ ] Zsh configuration management
+- [ ] Dotfiles synchronization
+- [ ] Configuration templates
+- [ ] Configuration versioning
+
+### General Improvements
+- [ ] Plugin system for extensibility
+- [ ] Configuration validation
+- [ ] Backup and restore functionality
+- [ ] Command aliases for common operations
+- [ ] Progress bars for long-running operations
+- [ ] Colored output for better readability
+- [ ] Shell completion scripts
+- [ ] Windows support
+- [ ] Docker support for isolated environments
+
 ## Installation
 
 1. Clone the repository:
@@ -95,4 +132,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
