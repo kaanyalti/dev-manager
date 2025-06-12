@@ -10,6 +10,7 @@ import (
 
 	"dev-manager/internal/ssh"
 	"dev-manager/pkg/config"
+	"dev-manager/pkg/git"
 
 	"github.com/atotto/clipboard"
 	"github.com/spf13/cobra"
@@ -81,13 +82,218 @@ var syncCmd = &cobra.Command{
 	},
 }
 
-var addRepoCmd = &cobra.Command{
-	Use:   "add-repo [name] [url]",
-	Short: "Add a repository to manage",
-	Args:  cobra.ExactArgs(2),
+var reposCmd = &cobra.Command{
+	Use:   "repos",
+	Short: "Manage repositories",
+	Long:  `Manage repositories in your development environment.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Implement add repository
-		fmt.Printf("Adding repository %s from %s\n", args[0], args[1])
+		cmd.Help()
+	},
+}
+
+var repoAddCmd = &cobra.Command{
+	Use:   "add",
+	Short: "Add a repository to manage",
+	Long: `Add a new repository to be managed by dev-manager.
+The repository will be cloned to the workspace directory under the specified directory name.
+
+Example:
+  dev-manager repos add --dir my-project --url https://github.com/username/my-project.git`,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Show help if no flags are provided
+		if !cmd.Flags().Changed("dir") && !cmd.Flags().Changed("url") {
+			cmd.Help()
+			os.Exit(0)
+		}
+
+		cfgPath, _ := cmd.Flags().GetString("config")
+		dirName, _ := cmd.Flags().GetString("dir")
+		repoURL, _ := cmd.Flags().GetString("url")
+
+		if dirName == "" {
+			log.Fatal("directory name is required (--dir)")
+		}
+		if repoURL == "" {
+			log.Fatal("repository URL is required (--url)")
+		}
+
+		mgr, err := config.NewManager(cfgPath)
+		if err != nil {
+			log.Fatalf("failed to create config manager: %v", err)
+		}
+
+		if err := mgr.Load(); err != nil {
+			log.Fatalf("failed to load config: %v", err)
+		}
+
+		cfg := mgr.GetConfig()
+
+		// Check if repository already exists
+		for _, repo := range cfg.Repositories {
+			if repo.Name == dirName {
+				log.Fatalf("repository with directory name '%s' already exists", dirName)
+			}
+		}
+
+		// Create repository path
+		repoPath := filepath.Join(cfg.WorkspacePath, dirName)
+
+		// Add new repository
+		newRepo := config.Repository{
+			Name:     dirName,
+			URL:      repoURL,
+			Path:     repoPath,
+			Branch:   "main", // Default to main branch
+			LastSync: time.Now(),
+		}
+
+		cfg.Repositories = append(cfg.Repositories, newRepo)
+
+		// Save configuration
+		if err := mgr.Save(); err != nil {
+			log.Fatalf("failed to save configuration: %v", err)
+		}
+
+		fmt.Printf("Added repository '%s' from %s\n", dirName, repoURL)
+		fmt.Printf("Repository will be cloned to: %s\n", repoPath)
+
+		// Prompt for immediate cloning
+		fmt.Print("Would you like to clone the repository now? (Y/n): ")
+		var resp string
+		fmt.Scanln(&resp)
+		if resp == "" || resp == "Y" || resp == "y" {
+			fmt.Println("Cloning repository...")
+			repo := git.New(newRepo.Path, newRepo.URL, newRepo.Branch)
+			if err := repo.Clone(); err != nil {
+				log.Fatalf("Failed to clone repository: %v", err)
+			}
+			fmt.Printf("Successfully cloned repository to %s\n", newRepo.Path)
+		} else {
+			fmt.Println("Repository will be cloned during the next sync.")
+		}
+	},
+}
+
+var repoRemoveCmd = &cobra.Command{
+	Use:   "remove",
+	Short: "Remove a repository from management",
+	Long: `Remove a repository from dev-manager.
+This will remove the repository from the configuration and optionally delete the repository directory.
+
+Example:
+  dev-manager repos remove --dir my-project
+  dev-manager repos remove (interactive selection)`,
+	Run: func(cmd *cobra.Command, args []string) {
+		cfgPath, _ := cmd.Flags().GetString("config")
+		dirName, _ := cmd.Flags().GetString("dir")
+
+		mgr, err := config.NewManager(cfgPath)
+		if err != nil {
+			log.Fatalf("failed to create config manager: %v", err)
+		}
+
+		if err := mgr.Load(); err != nil {
+			log.Fatalf("failed to load config: %v", err)
+		}
+
+		cfg := mgr.GetConfig()
+
+		var selectedRepo *config.Repository
+		var repoIndex int
+		if dirName == "" {
+			// List available repositories and prompt for selection
+			if len(cfg.Repositories) == 0 {
+				fmt.Println("No repositories found in configuration.")
+				os.Exit(1)
+			}
+			fmt.Println("Available repositories:")
+			for i, repo := range cfg.Repositories {
+				fmt.Printf("  [%d] %s (%s)\n", i+1, repo.Name, repo.URL)
+			}
+			fmt.Print("Select a repository to remove (number): ")
+			var idx int
+			_, err = fmt.Scanln(&idx)
+			if err != nil || idx < 1 || idx > len(cfg.Repositories) {
+				fmt.Println("Invalid selection.")
+				os.Exit(1)
+			}
+			repoIndex = idx - 1
+			selectedRepo = &cfg.Repositories[repoIndex]
+		} else {
+			// Find the repository by name
+			for i, repo := range cfg.Repositories {
+				if repo.Name == dirName {
+					repoIndex = i
+					selectedRepo = &cfg.Repositories[i]
+					break
+				}
+			}
+			if selectedRepo == nil {
+				log.Fatalf("repository with directory name '%s' is not managed by dev-manager", dirName)
+			}
+		}
+
+		// Check if directory exists
+		if _, err := os.Stat(selectedRepo.Path); err == nil {
+			fmt.Printf("Repository directory exists at: %s\n", selectedRepo.Path)
+			fmt.Print("Would you like to delete the repository directory? (y/N): ")
+			var resp string
+			fmt.Scanln(&resp)
+			if resp == "y" || resp == "Y" {
+				if err := os.RemoveAll(selectedRepo.Path); err != nil {
+					log.Fatalf("failed to remove repository directory: %v", err)
+				}
+				fmt.Printf("Removed repository directory: %s\n", selectedRepo.Path)
+			} else {
+				fmt.Println("Keeping repository directory.")
+			}
+		}
+
+		// Remove from config using the stored index
+		cfg.Repositories = append(cfg.Repositories[:repoIndex], cfg.Repositories[repoIndex+1:]...)
+
+		// Save configuration
+		if err := mgr.Save(); err != nil {
+			log.Fatalf("failed to save configuration: %v", err)
+		}
+
+		fmt.Printf("Removed repository '%s' from configuration\n", selectedRepo.Name)
+	},
+}
+
+var repoListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all managed repositories",
+	Long: `List all repositories managed by dev-manager.
+Shows repository name, URL, path, branch, and last sync time.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		cfgPath, _ := cmd.Flags().GetString("config")
+
+		mgr, err := config.NewManager(cfgPath)
+		if err != nil {
+			log.Fatalf("failed to create config manager: %v", err)
+		}
+
+		if err := mgr.Load(); err != nil {
+			log.Fatalf("failed to load config: %v", err)
+		}
+
+		cfg := mgr.GetConfig()
+
+		if len(cfg.Repositories) == 0 {
+			fmt.Println("No repositories found in configuration.")
+			return
+		}
+
+		fmt.Printf("Found %d repositories:\n\n", len(cfg.Repositories))
+		for _, repo := range cfg.Repositories {
+			fmt.Printf("Name: %s\n", repo.Name)
+			fmt.Printf("  URL: %s\n", repo.URL)
+			fmt.Printf("  Path: %s\n", repo.Path)
+			fmt.Printf("  Branch: %s\n", repo.Branch)
+			fmt.Printf("  Last Sync: %s\n", repo.LastSync.Format(time.RFC3339))
+			fmt.Println()
+		}
 	},
 }
 
@@ -530,15 +736,22 @@ var sshRemoveCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(syncCmd)
-	rootCmd.AddCommand(addRepoCmd)
+	rootCmd.AddCommand(reposCmd)
 
 	// Flags for init command
 	initCmd.Flags().StringP("config", "c", "", "Path to configuration file")
 	initCmd.Flags().StringP("workspace", "w", "", "Workspace directory for cloning repositories")
 
+	reposCmd.AddCommand(repoAddCmd)
+	reposCmd.AddCommand(repoRemoveCmd)
+	reposCmd.AddCommand(repoListCmd)
+
 	// Flags for add-repo command
-	addRepoCmd.Flags().StringP("branch", "b", "main", "Branch to track")
-	addRepoCmd.Flags().StringP("path", "p", "", "Custom path for the repository")
+	repoAddCmd.Flags().StringP("dir", "d", "", "Directory name where the repository will be cloned")
+	repoAddCmd.Flags().StringP("url", "u", "", "Repository URL to clone")
+
+	// Flags for remove-repo command
+	repoRemoveCmd.Flags().StringP("dir", "d", "", "Directory name of the repository to remove")
 
 	// SSH command group and subcommands
 	sshCmd.AddCommand(sshInitCmd)
