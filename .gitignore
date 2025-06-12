@@ -1,0 +1,13 @@
+# Output binaries
+bin/
+
+# OS / Editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# User-specific configuration (generated at runtime)
+config.yaml 

@@ -1,0 +1,28 @@
+# Example configuration for dev-manager
+# Save this as ~/.config/dev-manager/config.yaml or specify with --config flag.
+
+workspacePath: /Users/youruser/dev
+
+# How often to update repositories (Go duration string, e.g. "2h", "30m")
+updateFrequency: 2h
+
+repositories:
+  - name: dev-manager
+    url: git@github.com:kaanyalti/dev-manager.git
+    branch: main
+    path: /Users/youruser/dev/dev-manager
+  - name: dev-scripts
+    url: git@github.com:kaanyalti/dev-scripts.git
+    branch: main
+    path: /Users/youruser/dev/dev-scripts
+
+tools:
+  - name: nvim
+    configPath: ~/.config/nvim
+    backupPath: ~/.config/nvim.bak
+  - name: tmux
+    configPath: ~/.tmux.conf
+    backupPath: ~/.tmux.conf.bak
+  - name: zsh
+    configPath: ~/.zshrc
+    backupPath: ~/.zshrc.bak 
