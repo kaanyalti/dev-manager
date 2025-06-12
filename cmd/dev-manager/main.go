@@ -133,8 +133,30 @@ var sshInitCmd = &cobra.Command{
 			log.Fatalf("Failed to list SSH keys: %v", err)
 		}
 		if len(keys) == 0 {
-			fmt.Println("No SSH key pairs found. Generating a new ed25519 key pair...")
-			keyPath, err := mgr.GenerateKey("ed25519", "")
+			fmt.Println("No SSH key pairs found.")
+			var resp string
+			fmt.Print("Would you like to generate a new SSH key pair? (Y/n): ")
+			fmt.Scanln(&resp)
+			if resp != "" && resp != "Y" && resp != "y" {
+				fmt.Println("Skipping SSH key generation.")
+				os.Exit(0)
+			}
+
+			// Prompt for algorithm
+			algo := "ed25519"
+			fmt.Print("Enter key algorithm (ed25519/rsa/ecdsa) [ed25519]: ")
+			var inputAlgo string
+			fmt.Scanln(&inputAlgo)
+			if inputAlgo != "" {
+				algo = inputAlgo
+			}
+
+			// Prompt for name
+			fmt.Print("Enter a name for the key (optional): ")
+			var keyName string
+			fmt.Scanln(&keyName)
+
+			keyPath, err := mgr.GenerateKey(algo, keyName)
 			if err != nil {
 				log.Fatalf("Failed to generate SSH key: %v", err)
 			}
