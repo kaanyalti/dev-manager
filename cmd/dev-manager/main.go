@@ -94,18 +94,8 @@ var addRepoCmd = &cobra.Command{
 var sshCmd = &cobra.Command{
 	Use:   "ssh",
 	Short: "Manage SSH keys and agent for your dev environment",
-	Long: `SSH key and agent management for dev-manager.
-
-Available subcommands:
-  init           # Comprehensive SSH environment setup (checks, agent, keys)
-  generate       # Generate a new SSH key pair
-  list           # List available SSH key pairs and agent-loaded keys
-  add-agent      # Add a private SSH key to the ssh-agent
-  status         # Show SSH environment status (tooling, agent, keys, agent keys)
-  print-public   # Print the public key for a given private SSH key
-  copy-public    # Copy the public key for a given private SSH key to the clipboard
-  remove         # Remove a private SSH key from the agent and delete it from disk
-`,
+	Long: `Manage SSH keys and the ssh-agent for your development environment. 
+Provides commands to generate, list, add, remove, and inspect SSH keys and agent status.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
