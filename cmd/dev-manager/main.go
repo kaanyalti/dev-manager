@@ -332,6 +332,55 @@ var sshAddAgentCmd = &cobra.Command{
 	},
 }
 
+var sshStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show SSH environment status (tooling, agent, keys, agent keys)",
+	Run: func(cmd *cobra.Command, args []string) {
+		mgr, err := ssh.NewSSHManager()
+		if err != nil {
+			log.Fatalf("Failed to initialize SSH manager: %v", err)
+		}
+
+		fmt.Println("Checking required SSH tools...")
+		if err := mgr.CheckTools(); err != nil {
+			fmt.Printf("  [!] %v\n", err)
+		} else {
+			fmt.Println("  [✓] All required SSH tools are installed.")
+		}
+
+		fmt.Print("Checking if ssh-agent is running... ")
+		if mgr.IsAgentRunning() {
+			fmt.Println("[✓] ssh-agent is running.")
+		} else {
+			fmt.Println("[!] ssh-agent is NOT running.")
+		}
+
+		fmt.Println("\nPrivate SSH keys in ~/.ssh:")
+		keys, err := mgr.ListPrivateKeys()
+		if err != nil {
+			fmt.Printf("  [!] Failed to list SSH keys: %v\n", err)
+		} else if len(keys) == 0 {
+			fmt.Println("  (none found)")
+		} else {
+			for _, k := range keys {
+				fmt.Println("  ", k)
+			}
+		}
+
+		fmt.Println("\nKeys loaded in ssh-agent:")
+		agentKeys, err := mgr.ListAgentKeys()
+		if err != nil {
+			fmt.Printf("  [!] Failed to list agent keys: %v\n", err)
+		} else if len(agentKeys) == 0 {
+			fmt.Println("  (none loaded)")
+		} else {
+			for _, k := range agentKeys {
+				fmt.Println("  ", k)
+			}
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(syncCmd)
@@ -350,6 +399,7 @@ func init() {
 	sshCmd.AddCommand(sshGenerateCmd)
 	sshCmd.AddCommand(sshListCmd)
 	sshCmd.AddCommand(sshAddAgentCmd)
+	sshCmd.AddCommand(sshStatusCmd)
 	rootCmd.AddCommand(sshCmd)
 
 	sshGenerateCmd.Flags().String("algo", "", "Key algorithm (ed25519, rsa, ecdsa)")
