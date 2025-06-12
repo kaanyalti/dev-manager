@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -103,6 +104,7 @@ Available subcommands:
   status         # Show SSH environment status (tooling, agent, keys, agent keys)
   print-public   # Print the public key for a given private SSH key
   copy-public    # Copy the public key for a given private SSH key to the clipboard
+  remove         # Remove a private SSH key from the agent and delete it from disk
 `,
 }
 
@@ -468,6 +470,70 @@ var sshCopyPublicCmd = &cobra.Command{
 	},
 }
 
+var sshRemoveCmd = &cobra.Command{
+	Use:   "remove",
+	Short: "Remove a private SSH key from the agent and delete it from disk",
+	Run: func(cmd *cobra.Command, args []string) {
+		mgr, err := ssh.NewSSHManager()
+		if err != nil {
+			log.Fatalf("Failed to initialize SSH manager: %v", err)
+		}
+
+		keyPath, _ := cmd.Flags().GetString("key")
+		if keyPath == "" {
+			// List available keys and prompt for selection
+			keys, err := mgr.ListPrivateKeys()
+			if err != nil {
+				log.Fatalf("Failed to list SSH keys: %v", err)
+			}
+			if len(keys) == 0 {
+				fmt.Println("No SSH keys found in ~/.ssh.")
+				os.Exit(1)
+			}
+			fmt.Println("Available SSH keys:")
+			for i, k := range keys {
+				fmt.Printf("  [%d] %s\n", i+1, k)
+			}
+			fmt.Print("Select a key to remove (number): ")
+			var idx int
+			_, err = fmt.Scanln(&idx)
+			if err != nil || idx < 1 || idx > len(keys) {
+				fmt.Println("Invalid selection.")
+				os.Exit(1)
+			}
+			keyPath = keys[idx-1]
+		}
+
+		fmt.Printf("Are you sure you want to remove the key %s from the agent and delete it from disk? (y/N): ", keyPath)
+		var resp string
+		fmt.Scanln(&resp)
+		if resp != "y" && resp != "Y" {
+			fmt.Println("Aborted.")
+			os.Exit(0)
+		}
+
+		// Remove from agent
+		cmdRm := exec.Command("ssh-add", "-d", keyPath)
+		cmdRm.Stdin = os.Stdin
+		cmdRm.Stdout = os.Stdout
+		cmdRm.Stderr = os.Stderr
+		_ = cmdRm.Run() // ignore error if not loaded
+
+		// Delete private and public key files
+		pubPath := keyPath + ".pub"
+		if err := os.Remove(keyPath); err != nil {
+			fmt.Printf("Failed to delete private key: %v\n", err)
+		} else {
+			fmt.Printf("Deleted private key: %s\n", keyPath)
+		}
+		if err := os.Remove(pubPath); err != nil {
+			fmt.Printf("Failed to delete public key: %v\n", err)
+		} else {
+			fmt.Printf("Deleted public key: %s\n", pubPath)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(syncCmd)
@@ -489,6 +555,7 @@ func init() {
 	sshCmd.AddCommand(sshStatusCmd)
 	sshCmd.AddCommand(sshPrintPublicCmd)
 	sshCmd.AddCommand(sshCopyPublicCmd)
+	sshCmd.AddCommand(sshRemoveCmd)
 	rootCmd.AddCommand(sshCmd)
 
 	sshGenerateCmd.Flags().String("algo", "", "Key algorithm (ed25519, rsa, ecdsa)")
@@ -496,6 +563,7 @@ func init() {
 	sshAddAgentCmd.Flags().String("key", "", "Path to the private key to add to the agent")
 	sshPrintPublicCmd.Flags().String("key", "", "Path to the private key to print its public key")
 	sshCopyPublicCmd.Flags().String("key", "", "Path to the private key to copy its public key")
+	sshRemoveCmd.Flags().String("key", "", "Path to the private key to remove and delete")
 }
 
 func main() {
