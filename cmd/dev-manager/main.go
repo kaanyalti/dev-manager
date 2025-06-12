@@ -42,10 +42,17 @@ var initCmd = &cobra.Command{
 			log.Fatalf("failed to create config manager: %v", err)
 		}
 
-		// Attempt to load existing config (ignore if not exists)
-		_ = mgr.Load()
+		// Attempt to load existing config (fail if parsing error, ignore if not exists)
+		if err := mgr.Load(); err != nil {
+			if !os.IsNotExist(err) {
+				log.Fatalf("failed to load config: %v", err)
+			}
+		}
 
 		cfg := mgr.GetConfig()
+		if err := cfg.Validate(); err != nil {
+			log.Fatalf("invalid configuration: %v", err)
+		}
 		if cfg.WorkspacePath == "" {
 			cfg.WorkspacePath = workspace
 		}
