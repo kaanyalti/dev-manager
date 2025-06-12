@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -29,32 +30,72 @@ type Config struct {
 	WorkspacePath   string        `yaml:"workspacePath"`
 }
 
+// ValidationError represents a collection of configuration validation errors
+type ValidationError struct {
+	Errors []string
+}
+
+func (e *ValidationError) Error() string {
+	if len(e.Errors) == 0 {
+		return "no validation errors"
+	}
+	report := "Configuration validation failed:\n"
+	for _, err := range e.Errors {
+		report += fmt.Sprintf("  - %s\n", err)
+	}
+	return report
+}
+
 // Validate checks the configuration for required fields and structure
 func (c *Config) Validate() error {
+	var errors []string
+
+	// Validate workspace path
 	if c.WorkspacePath == "" {
-		return fmt.Errorf("workspacePath is required")
+		errors = append(errors, "workspacePath is required")
 	}
+
+	// Validate update frequency
 	if c.UpdateFrequency <= 0 {
-		return fmt.Errorf("updateFrequency must be positive")
+		errors = append(errors, "updateFrequency must be positive")
 	}
+
+	// Validate repositories
 	for i, repo := range c.Repositories {
+		repoErrors := []string{}
 		if repo.Name == "" {
-			return fmt.Errorf("repository[%d] is missing name", i)
+			repoErrors = append(repoErrors, "missing name")
 		}
 		if repo.URL == "" {
-			return fmt.Errorf("repository[%d] is missing url", i)
+			repoErrors = append(repoErrors, "missing url")
 		}
 		if repo.Path == "" {
-			return fmt.Errorf("repository[%d] is missing path", i)
+			repoErrors = append(repoErrors, "missing path")
+		}
+		if repo.Branch == "" {
+			repoErrors = append(repoErrors, "missing branch")
+		}
+		if len(repoErrors) > 0 {
+			errors = append(errors, fmt.Sprintf("repository[%d] (%s): %s", i, repo.Name, strings.Join(repoErrors, ", ")))
 		}
 	}
+
+	// Validate tools
 	for i, tool := range c.Tools {
+		toolErrors := []string{}
 		if tool.Name == "" {
-			return fmt.Errorf("tool[%d] is missing name", i)
+			toolErrors = append(toolErrors, "missing name")
 		}
 		if tool.ConfigPath == "" {
-			return fmt.Errorf("tool[%d] is missing configPath", i)
+			toolErrors = append(toolErrors, "missing configPath")
 		}
+		if len(toolErrors) > 0 {
+			errors = append(errors, fmt.Sprintf("tool[%d] (%s): %s", i, tool.Name, strings.Join(toolErrors, ", ")))
+		}
+	}
+
+	if len(errors) > 0 {
+		return &ValidationError{Errors: errors}
 	}
 	return nil
 }
