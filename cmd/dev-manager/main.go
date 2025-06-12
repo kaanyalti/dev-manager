@@ -95,23 +95,23 @@ var repoAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a repository to manage",
 	Long: `Add a new repository to be managed by dev-manager.
-The repository will be cloned to the workspace directory under the specified directory name.
+The repository will be cloned to the workspace directory under the specified name.
 
 Example:
-  dev-manager repos add --dir my-project --url https://github.com/username/my-project.git`,
+  dev-manager repos add --name my-project --url https://github.com/username/my-project.git`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Show help if no flags are provided
-		if !cmd.Flags().Changed("dir") && !cmd.Flags().Changed("url") {
+		if !cmd.Flags().Changed("name") && !cmd.Flags().Changed("url") {
 			cmd.Help()
 			os.Exit(0)
 		}
 
 		cfgPath, _ := cmd.Flags().GetString("config")
-		dirName, _ := cmd.Flags().GetString("dir")
+		repoName, _ := cmd.Flags().GetString("name")
 		repoURL, _ := cmd.Flags().GetString("url")
 
-		if dirName == "" {
-			log.Fatal("directory name is required (--dir)")
+		if repoName == "" {
+			log.Fatal("repository name is required (--name)")
 		}
 		if repoURL == "" {
 			log.Fatal("repository URL is required (--url)")
@@ -130,17 +130,17 @@ Example:
 
 		// Check if repository already exists
 		for _, repo := range cfg.Repositories {
-			if repo.Name == dirName {
-				log.Fatalf("repository with directory name '%s' already exists", dirName)
+			if repo.Name == repoName {
+				log.Fatalf("repository with name '%s' already exists", repoName)
 			}
 		}
 
 		// Create repository path
-		repoPath := filepath.Join(cfg.WorkspacePath, dirName)
+		repoPath := filepath.Join(cfg.WorkspacePath, repoName)
 
 		// Add new repository
 		newRepo := config.Repository{
-			Name:     dirName,
+			Name:     repoName,
 			URL:      repoURL,
 			Path:     repoPath,
 			Branch:   "main", // Default to main branch
@@ -154,7 +154,7 @@ Example:
 			log.Fatalf("failed to save configuration: %v", err)
 		}
 
-		fmt.Printf("Added repository '%s' from %s\n", dirName, repoURL)
+		fmt.Printf("Added repository '%s' from %s\n", repoName, repoURL)
 		fmt.Printf("Repository will be cloned to: %s\n", repoPath)
 
 		// Prompt for immediate cloning
@@ -181,11 +181,11 @@ var repoRemoveCmd = &cobra.Command{
 This will remove the repository from the configuration and optionally delete the repository directory.
 
 Example:
-  dev-manager repos remove --dir my-project
+  dev-manager repos remove --name my-project
   dev-manager repos remove (interactive selection)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfgPath, _ := cmd.Flags().GetString("config")
-		dirName, _ := cmd.Flags().GetString("dir")
+		repoName, _ := cmd.Flags().GetString("name")
 
 		mgr, err := config.NewManager(cfgPath)
 		if err != nil {
@@ -200,7 +200,7 @@ Example:
 
 		var selectedRepo *config.Repository
 		var repoIndex int
-		if dirName == "" {
+		if repoName == "" {
 			// List available repositories and prompt for selection
 			if len(cfg.Repositories) == 0 {
 				fmt.Println("No repositories found in configuration.")
@@ -222,14 +222,14 @@ Example:
 		} else {
 			// Find the repository by name
 			for i, repo := range cfg.Repositories {
-				if repo.Name == dirName {
+				if repo.Name == repoName {
 					repoIndex = i
 					selectedRepo = &cfg.Repositories[i]
 					break
 				}
 			}
 			if selectedRepo == nil {
-				log.Fatalf("repository with directory name '%s' is not managed by dev-manager", dirName)
+				log.Fatalf("repository with name '%s' is not managed by dev-manager", repoName)
 			}
 		}
 
@@ -747,11 +747,11 @@ func init() {
 	reposCmd.AddCommand(repoListCmd)
 
 	// Flags for add-repo command
-	repoAddCmd.Flags().StringP("dir", "d", "", "Directory name where the repository will be cloned")
+	repoAddCmd.Flags().StringP("name", "n", "", "Name of the repository")
 	repoAddCmd.Flags().StringP("url", "u", "", "Repository URL to clone")
 
 	// Flags for remove-repo command
-	repoRemoveCmd.Flags().StringP("dir", "d", "", "Directory name of the repository to remove")
+	repoRemoveCmd.Flags().StringP("name", "n", "", "Name of the repository to remove")
 
 	// SSH command group and subcommands
 	sshCmd.AddCommand(sshInitCmd)
