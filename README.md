@@ -1,60 +1,13 @@
 # Dev Manager
 
-A command-line tool to manage your development environment, including Git repositories and SSH configurations.
+A command-line tool for managing development repositories and SSH keys.
 
 ## Features
 
-- **Repository Management**
-  - Add repositories to manage
-  - List managed repositories
-  - Remove repositories
-  - Sync repositories (fetch and rebase)
-  - Automatic cloning of new repositories
-  - Skip sync for repositories with uncommitted changes
-
-- **SSH Key Management**
-  - Generate SSH keys
-  - Add keys to SSH agent
-  - Print public keys
-  - Copy public keys to clipboard
-  - Remove SSH keys
-
-## Planned Features
-
-### Repository Management
-- [ ] Interactive repository selection with fuzzy search
-- [ ] Support for multiple branches per repository
-- [ ] Automatic branch switching based on ticket/issue
-- [ ] Repository templates for quick project setup
-- [ ] Git hooks management
-- [ ] Repository backup and restore
-- [ ] Repository health checks (dependencies, security, etc.)
-
-### SSH Management
-- [ ] SSH config file management
-- [ ] SSH key rotation
-- [ ] SSH key backup and restore
-- [ ] SSH key usage statistics
-- [ ] SSH key expiration management
-
-### Tool Configuration
-- [ ] Neovim configuration management
-- [ ] Tmux configuration management
-- [ ] Zsh configuration management
-- [ ] Dotfiles synchronization
-- [ ] Configuration templates
-- [ ] Configuration versioning
-
-### General Improvements
-- [ ] Plugin system for extensibility
-- [ ] Configuration validation
-- [ ] Backup and restore functionality
-- [ ] Command aliases for common operations
-- [ ] Progress bars for long-running operations
-- [ ] Colored output for better readability
-- [ ] Shell completion scripts
-- [ ] Windows support
-- [ ] Docker support for isolated environments
+- Repository management (add, remove, sync)
+- SSH key management (generate, add to agent, print public key)
+- Configuration management
+- Tool management
 
 ## Installation
 
@@ -111,6 +64,19 @@ dev-manager ssh copy-public --key ~/.ssh/my-key
 dev-manager ssh remove --key ~/.ssh/my-key
 ```
 
+### Configuration Management
+
+- `dev-manager config show [--raw]`: Display current configuration
+  - `--raw`: Show raw YAML content
+- `dev-manager config validate [-f|--file <path>]`: Validate configuration file
+  - Validates required fields and structure
+  - Shows detailed report of any validation errors
+  - Example: `dev-manager config validate -f config.yaml`
+- `dev-manager init`: Initialize configuration
+  - Creates default config file
+  - Sets up workspace directory
+  - Configures update frequency
+
 ## Configuration
 
 The tool uses a YAML configuration file located at `~/.dev-manager/config.yaml`. You can specify a different location using the `--config` flag.
@@ -125,6 +91,43 @@ repositories:
     branch: main
     last_sync: "2024-03-20T10:00:00Z"
 ```
+
+## Planned Features
+
+### Repository Management
+- [ ] Interactive repository selection with fuzzy search
+- [ ] Support for multiple branches per repository
+- [ ] Automatic branch switching based on ticket/issue
+- [ ] Repository templates for quick project setup
+- [ ] Git hooks management
+- [ ] Repository backup and restore
+- [ ] Repository health checks (dependencies, security, etc.)
+
+### SSH Management
+- [ ] SSH config file management
+- [ ] SSH key rotation
+- [ ] SSH key backup and restore
+- [ ] SSH key usage statistics
+- [ ] SSH key expiration management
+
+### Tool Configuration
+- [ ] Neovim configuration management
+- [ ] Tmux configuration management
+- [ ] Zsh configuration management
+- [ ] Dotfiles synchronization
+- [ ] Configuration templates
+- [ ] Configuration versioning
+
+### General Improvements
+- [ ] Plugin system for extensibility
+- [ ] Configuration validation
+- [ ] Backup and restore functionality
+- [ ] Command aliases for common operations
+- [ ] Progress bars for long-running operations
+- [ ] Colored output for better readability
+- [ ] Shell completion scripts
+- [ ] Windows support
+- [ ] Docker support for isolated environments
 
 ## Contributing
 
