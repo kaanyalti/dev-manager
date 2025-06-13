@@ -83,13 +83,49 @@ var sshPrintPublicCmd = &cobra.Command{
 	Use:   "print-public",
 	Short: "Print the public key",
 	Long: `Print the public key for an existing SSH private key.
+If no key is specified with --key, you will be prompted to select one from a list.
+
 Example:
-  dev-manager ssh print-public --key ~/.ssh/my-key`,
+  dev-manager ssh print-public --key ~/.ssh/my-key
+  dev-manager ssh print-public`,
 	Run: func(cmd *cobra.Command, args []string) {
 		keyPath, _ := cmd.Flags().GetString("key")
 
 		if keyPath == "" {
-			log.Fatal("key path is required (--key)")
+			// List available keys
+			mgr := newSSHManager()
+			keys, err := mgr.ListPrivateKeys()
+			if err != nil {
+				log.Fatalf("failed to list keys: %v", err)
+			}
+
+			if len(keys) == 0 {
+				log.Fatal("no SSH keys found")
+			}
+
+			fmt.Println("Available SSH keys:")
+			for i, key := range keys {
+				fmt.Printf("%d. %s\n", i+1, key)
+			}
+
+			// Prompt for selection
+			fmt.Print("\nSelect a key to print (number, or press enter to abort): ")
+			var selectionStr string
+			fmt.Scanln(&selectionStr)
+
+			// If empty input, abort
+			if selectionStr == "" {
+				fmt.Println("Operation aborted.")
+				return
+			}
+
+			// Convert selection to number
+			selection, err := strconv.Atoi(selectionStr)
+			if err != nil || selection < 1 || selection > len(keys) {
+				log.Fatal("invalid selection")
+			}
+
+			keyPath = keys[selection-1]
 		}
 
 		mgr := newSSHManager()
@@ -103,13 +139,49 @@ var sshCopyPublicCmd = &cobra.Command{
 	Use:   "copy-public",
 	Short: "Copy public key to clipboard",
 	Long: `Copy the public key to the clipboard for an existing SSH private key.
+If no key is specified with --key, you will be prompted to select one from a list.
+
 Example:
-  dev-manager ssh copy-public --key ~/.ssh/my-key`,
+  dev-manager ssh copy-public --key ~/.ssh/my-key
+  dev-manager ssh copy-public`,
 	Run: func(cmd *cobra.Command, args []string) {
 		keyPath, _ := cmd.Flags().GetString("key")
 
 		if keyPath == "" {
-			log.Fatal("key path is required (--key)")
+			// List available keys
+			mgr := newSSHManager()
+			keys, err := mgr.ListPrivateKeys()
+			if err != nil {
+				log.Fatalf("failed to list keys: %v", err)
+			}
+
+			if len(keys) == 0 {
+				log.Fatal("no SSH keys found")
+			}
+
+			fmt.Println("Available SSH keys:")
+			for i, key := range keys {
+				fmt.Printf("%d. %s\n", i+1, key)
+			}
+
+			// Prompt for selection
+			fmt.Print("\nSelect a key to copy (number, or press enter to abort): ")
+			var selectionStr string
+			fmt.Scanln(&selectionStr)
+
+			// If empty input, abort
+			if selectionStr == "" {
+				fmt.Println("Operation aborted.")
+				return
+			}
+
+			// Convert selection to number
+			selection, err := strconv.Atoi(selectionStr)
+			if err != nil || selection < 1 || selection > len(keys) {
+				log.Fatal("invalid selection")
+			}
+
+			keyPath = keys[selection-1]
 		}
 
 		pubKeyPath := keyPath + ".pub"
