@@ -15,8 +15,8 @@ import (
 
 var gitOpsCmd = &cobra.Command{
 	Use:   "git-ops",
-	Short: "Git operations and workflow",
-	Long:  `Commands for performing git operations like commit, push, and other git workflow actions.`,
+	Short: "Git workflow enhancements",
+	Long:  `Commands for git workflow enhancements like LLM-powered commit messages and other git operation improvements.`,
 }
 
 var gitCommitCmd = &cobra.Command{
