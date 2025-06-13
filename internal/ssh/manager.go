@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type SSHManager struct {
@@ -63,17 +64,49 @@ func (m *SSHManager) ListPrivateKeys() ([]string, error) {
 }
 
 // List keys loaded in the agent
-func (m *SSHManager) ListAgentKeys() ([]string, error) {
+func (m *SSHManager) ListAgentKeys() (map[string]string, error) {
 	cmd := exec.Command("ssh-add", "-l")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
 			// No identities loaded
-			return []string{}, nil
+			return make(map[string]string), nil
 		}
 		return nil, fmt.Errorf("ssh-add -l failed: %s", string(output))
 	}
-	return []string{string(output)}, nil
+
+	// Parse the output
+	lines := strings.Split(string(output), "\n")
+	agentKeys := make(map[string]string)
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		// ssh-add -l output format: <key_size> <fingerprint> <comment>
+		parts := strings.Fields(line)
+		if len(parts) >= 3 {
+			fingerprint := parts[1]
+			comment := parts[len(parts)-1]
+			agentKeys[fingerprint] = comment
+		}
+	}
+	return agentKeys, nil
+}
+
+// GetKeyFingerprint returns the fingerprint of a private key
+func (m *SSHManager) GetKeyFingerprint(keyPath string) (string, error) {
+	cmd := exec.Command("ssh-keygen", "-lf", keyPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to get key fingerprint: %s", string(output))
+	}
+
+	// ssh-keygen -lf output format: <key_size> <fingerprint> <comment>
+	parts := strings.Fields(string(output))
+	if len(parts) >= 2 {
+		return parts[1], nil
+	}
+	return "", fmt.Errorf("unexpected ssh-keygen output format")
 }
 
 // Add a key to the agent

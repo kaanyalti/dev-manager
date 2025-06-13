@@ -230,21 +230,26 @@ var sshListCmd = &cobra.Command{
 		if len(keys) == 0 {
 			fmt.Println("  (none found)")
 		} else {
-			for _, k := range keys {
-				fmt.Println("  ", k)
+			// Get agent keys first
+			agentKeys, err := mgr.ListAgentKeys()
+			if err != nil {
+				log.Fatalf("Failed to list agent keys: %v", err)
 			}
-		}
 
-		fmt.Println("\nKeys loaded in ssh-agent:")
-		agentKeys, err := mgr.ListAgentKeys()
-		if err != nil {
-			log.Fatalf("Failed to list agent keys: %v", err)
-		}
-		if len(agentKeys) == 0 {
-			fmt.Println("  (none loaded)")
-		} else {
-			for _, k := range agentKeys {
-				fmt.Println("  ", k)
+			// Print each key with its agent status
+			for _, k := range keys {
+				fingerprint, err := mgr.GetKeyFingerprint(k)
+				if err != nil {
+					log.Printf("Warning: failed to get fingerprint for %s: %v", k, err)
+					fmt.Printf("  %s (status unknown)\n", k)
+					continue
+				}
+
+				status := "not in agent"
+				if _, inAgent := agentKeys[fingerprint]; inAgent {
+					status = "in agent"
+				}
+				fmt.Printf("  %s (%s)\n", k, status)
 			}
 		}
 	},
