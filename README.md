@@ -173,6 +173,11 @@ dev-manager deps remove go
 - [ ] VM monitoring and health checks
 - [ ] VM resource usage analytics
 
+### Declarative Integration Test Runner
+- [ ] Framework for defining and running integration tests in a declarative format
+- [ ] Support for test definitions in a structured format
+- [ ] Validation of command outputs and system state
+
 ## Configuration
 
 The tool uses a YAML configuration file located at `~/.dev-manager/config.yaml`. You can specify a different location using the `--config` flag.
