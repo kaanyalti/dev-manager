@@ -63,11 +63,18 @@ func GitCommit() error {
 		return fmt.Errorf("failed to stage changes: %w", err)
 	}
 
-	// Get staged changes
+	// Get staged changes for commit message
 	diffCmd := exec.Command("git", "diff", "--cached")
 	diffOutput, err := diffCmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to get staged changes: %w", err)
+	}
+
+	// Get list of changed files
+	filesCmd := exec.Command("git", "diff", "--cached", "--name-only")
+	filesOutput, err := filesCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get changed files: %w", err)
 	}
 
 	// Generate commit message using OpenAI
@@ -76,9 +83,9 @@ func GitCommit() error {
 		return fmt.Errorf("failed to generate commit message: %w", err)
 	}
 
-	// Show staged changes and proposed commit message
-	fmt.Println("\nStaged changes:")
-	fmt.Println(string(diffOutput))
+	// Show changed files and proposed commit message
+	fmt.Println("\nChanged files:")
+	fmt.Println(string(filesOutput))
 	fmt.Println("\nProposed commit message:")
 	fmt.Println(commitMsg)
 	fmt.Println("\nDo you want to commit and push these changes? (y/N): ")
