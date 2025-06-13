@@ -79,6 +79,44 @@ Example:
 	},
 }
 
+// selectKey interactively prompts the user to select a key from the list of available keys.
+// Returns the selected key path or empty string if aborted.
+func selectKey(action string) string {
+	mgr := newSSHManager()
+	keys, err := mgr.ListPrivateKeys()
+	if err != nil {
+		log.Fatalf("failed to list keys: %v", err)
+	}
+
+	if len(keys) == 0 {
+		log.Fatal("no SSH keys found")
+	}
+
+	fmt.Println("Available SSH keys:")
+	for i, key := range keys {
+		fmt.Printf("%d. %s\n", i+1, key)
+	}
+
+	// Prompt for selection
+	fmt.Printf("\nSelect a key to %s (number, or press enter to abort): ", action)
+	var selectionStr string
+	fmt.Scanln(&selectionStr)
+
+	// If empty input, abort
+	if selectionStr == "" {
+		fmt.Println("Operation aborted.")
+		return ""
+	}
+
+	// Convert selection to number
+	selection, err := strconv.Atoi(selectionStr)
+	if err != nil || selection < 1 || selection > len(keys) {
+		log.Fatal("invalid selection")
+	}
+
+	return keys[selection-1]
+}
+
 var sshPrintPublicCmd = &cobra.Command{
 	Use:   "print-public",
 	Short: "Print the public key",
@@ -92,40 +130,10 @@ Example:
 		keyPath, _ := cmd.Flags().GetString("key")
 
 		if keyPath == "" {
-			// List available keys
-			mgr := newSSHManager()
-			keys, err := mgr.ListPrivateKeys()
-			if err != nil {
-				log.Fatalf("failed to list keys: %v", err)
-			}
-
-			if len(keys) == 0 {
-				log.Fatal("no SSH keys found")
-			}
-
-			fmt.Println("Available SSH keys:")
-			for i, key := range keys {
-				fmt.Printf("%d. %s\n", i+1, key)
-			}
-
-			// Prompt for selection
-			fmt.Print("\nSelect a key to print (number, or press enter to abort): ")
-			var selectionStr string
-			fmt.Scanln(&selectionStr)
-
-			// If empty input, abort
-			if selectionStr == "" {
-				fmt.Println("Operation aborted.")
+			keyPath = selectKey("print")
+			if keyPath == "" {
 				return
 			}
-
-			// Convert selection to number
-			selection, err := strconv.Atoi(selectionStr)
-			if err != nil || selection < 1 || selection > len(keys) {
-				log.Fatal("invalid selection")
-			}
-
-			keyPath = keys[selection-1]
 		}
 
 		mgr := newSSHManager()
@@ -148,40 +156,10 @@ Example:
 		keyPath, _ := cmd.Flags().GetString("key")
 
 		if keyPath == "" {
-			// List available keys
-			mgr := newSSHManager()
-			keys, err := mgr.ListPrivateKeys()
-			if err != nil {
-				log.Fatalf("failed to list keys: %v", err)
-			}
-
-			if len(keys) == 0 {
-				log.Fatal("no SSH keys found")
-			}
-
-			fmt.Println("Available SSH keys:")
-			for i, key := range keys {
-				fmt.Printf("%d. %s\n", i+1, key)
-			}
-
-			// Prompt for selection
-			fmt.Print("\nSelect a key to copy (number, or press enter to abort): ")
-			var selectionStr string
-			fmt.Scanln(&selectionStr)
-
-			// If empty input, abort
-			if selectionStr == "" {
-				fmt.Println("Operation aborted.")
+			keyPath = selectKey("copy")
+			if keyPath == "" {
 				return
 			}
-
-			// Convert selection to number
-			selection, err := strconv.Atoi(selectionStr)
-			if err != nil || selection < 1 || selection > len(keys) {
-				log.Fatal("invalid selection")
-			}
-
-			keyPath = keys[selection-1]
 		}
 
 		pubKeyPath := keyPath + ".pub"
@@ -211,40 +189,10 @@ Example:
 		keyPath, _ := cmd.Flags().GetString("key")
 
 		if keyPath == "" {
-			// List available keys
-			mgr := newSSHManager()
-			keys, err := mgr.ListPrivateKeys()
-			if err != nil {
-				log.Fatalf("failed to list keys: %v", err)
-			}
-
-			if len(keys) == 0 {
-				log.Fatal("no SSH keys found")
-			}
-
-			fmt.Println("Available SSH keys:")
-			for i, key := range keys {
-				fmt.Printf("%d. %s\n", i+1, key)
-			}
-
-			// Prompt for selection
-			fmt.Print("\nSelect a key to remove (number, or press enter to abort): ")
-			var selectionStr string
-			fmt.Scanln(&selectionStr)
-
-			// If empty input, abort
-			if selectionStr == "" {
-				fmt.Println("Key removal aborted.")
+			keyPath = selectKey("remove")
+			if keyPath == "" {
 				return
 			}
-
-			// Convert selection to number
-			selection, err := strconv.Atoi(selectionStr)
-			if err != nil || selection < 1 || selection > len(keys) {
-				log.Fatal("invalid selection")
-			}
-
-			keyPath = keys[selection-1]
 		}
 
 		// Remove from agent first (best effort, ignore error if not loaded)
