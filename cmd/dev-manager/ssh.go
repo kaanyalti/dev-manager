@@ -216,6 +216,40 @@ Example:
 	},
 }
 
+var sshListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List available SSH key pairs and agent-loaded keys",
+	Run: func(cmd *cobra.Command, args []string) {
+		mgr := newSSHManager()
+
+		fmt.Println("Private SSH keys in ~/.ssh:")
+		keys, err := mgr.ListPrivateKeys()
+		if err != nil {
+			log.Fatalf("Failed to list SSH keys: %v", err)
+		}
+		if len(keys) == 0 {
+			fmt.Println("  (none found)")
+		} else {
+			for _, k := range keys {
+				fmt.Println("  ", k)
+			}
+		}
+
+		fmt.Println("\nKeys loaded in ssh-agent:")
+		agentKeys, err := mgr.ListAgentKeys()
+		if err != nil {
+			log.Fatalf("Failed to list agent keys: %v", err)
+		}
+		if len(agentKeys) == 0 {
+			fmt.Println("  (none loaded)")
+		} else {
+			for _, k := range agentKeys {
+				fmt.Println("  ", k)
+			}
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(sshCmd)
 
@@ -234,4 +268,6 @@ func init() {
 
 	sshCmd.AddCommand(sshRemoveCmd)
 	sshRemoveCmd.Flags().StringP("key", "k", "", "Path to the private key")
+
+	sshCmd.AddCommand(sshListCmd)
 }
