@@ -20,6 +20,11 @@ A command-line tool for managing development repositories and SSH keys.
 
 2. Build the project:
    ```bash
+   # Using mage (recommended)
+   go install github.com/magefile/mage@latest
+   mage build
+
+   # Or using go directly
    go build -o bin/dev-manager ./cmd/dev-manager
    ```
 
@@ -138,6 +143,18 @@ dev-manager deps remove go
 - [ ] Shell completion scripts
 - [ ] Windows support
 - [ ] Docker support for isolated environments
+
+### Git Automation
+- [ ] LLM-powered commit message generation
+- [ ] Smart branch naming based on ticket/issue
+- [ ] Automated PR creation and management
+- [ ] Git workflow templates (e.g., GitFlow, GitHub Flow)
+- [ ] Automated code review suggestions
+- [ ] Git hooks management and templates
+- [ ] Commit history analysis and cleanup
+- [ ] Branch management and cleanup
+- [ ] Automated semantic versioning
+- [ ] Changelog generation
 
 ### VM Orchestration
 - [ ] Cross-platform VM management (QEMU/KVM, VirtualBox, VMware)

@@ -16,7 +16,7 @@ import (
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Manage configuration",
+	Short: "Manage dev-manager's own configuration",
 	Long:  `Commands for managing dev-manager configuration.`,
 }
 
