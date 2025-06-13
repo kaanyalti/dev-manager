@@ -178,6 +178,20 @@ dev-manager deps remove go
 - [ ] Support for test definitions in a structured format
 - [ ] Validation of command outputs and system state
 
+A planned feature is a declarative test framework that will generate test code. The framework will:
+
+1. Allow users to define tests in a declarative format (e.g., YAML or JSON)
+2. Generate corresponding test code in Go
+3. Support user modifications to the generated code
+4. Preserve user changes when regenerating tests
+5. Update only the non-modified parts of the test code
+
+This will make it easier to:
+- Write and maintain tests
+- Keep test code consistent
+- Allow customization while maintaining automation
+- Reduce boilerplate code
+
 ## Configuration
 
 The tool uses a YAML configuration file located at `~/.dev-manager/config.yaml`. You can specify a different location using the `--config` flag.

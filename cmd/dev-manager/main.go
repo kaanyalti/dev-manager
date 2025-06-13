@@ -61,6 +61,9 @@ func init() {
 	toolsCmd.AddCommand(nvimCmd)
 	toolsCmd.AddCommand(tmuxCmd)
 	toolsCmd.AddCommand(zshCmd)
+
+	// Add git operations commands
+	rootCmd.AddCommand(gitOpsCmd)
 }
 
 func main() {
