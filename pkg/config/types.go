@@ -22,10 +22,19 @@ type ToolConfig struct {
 	BackupPath string `yaml:"backupPath"`
 }
 
+// Dependency represents a development dependency
+type Dependency struct {
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
+	Source  string `yaml:"source"` // URL or source location
+	Path    string `yaml:"path"`   // Installation path
+}
+
 // Config represents the main configuration structure
 type Config struct {
 	Repositories    []Repository  `yaml:"repositories"`
 	Tools           []ToolConfig  `yaml:"tools"`
+	Dependencies    []Dependency  `yaml:"dependencies"`
 	UpdateFrequency time.Duration `yaml:"updateFrequency"`
 	WorkspacePath   string        `yaml:"workspacePath"`
 }

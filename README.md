@@ -8,6 +8,7 @@ A command-line tool for managing development repositories and SSH keys.
 - SSH key management (generate, add to agent, print public key)
 - Configuration management
 - Tool management
+- Dependency management
 
 ## Installation
 
@@ -77,19 +78,20 @@ dev-manager ssh remove --key ~/.ssh/my-key
   - Sets up workspace directory
   - Configures update frequency
 
-## Configuration
+### Dependency Management
 
-The tool uses a YAML configuration file located at `~/.dev-manager/config.yaml`. You can specify a different location using the `--config` flag.
+```bash
+# Add a new dependency
+dev-manager deps add go@1.21.0
 
-Example configuration:
-```yaml
-workspace_path: ~/workspace
-repositories:
-  - name: my-project
-    url: https://github.com/username/my-project.git
-    path: ~/workspace/my-project
-    branch: main
-    last_sync: "2024-03-20T10:00:00Z"
+# Install dependencies
+dev-manager deps install
+
+# List installed dependencies
+dev-manager deps list
+
+# Remove a dependency
+dev-manager deps remove go
 ```
 
 ## Planned Features
@@ -118,6 +120,14 @@ repositories:
 - [ ] Configuration templates
 - [ ] Configuration versioning
 
+### Dependency Server
+- [ ] Centralized registry for development dependencies
+- [ ] Smart source resolution for dependencies
+- [ ] Version management and platform-specific configurations
+- [ ] Community contributions to expand the registry
+- [ ] Automatic dependency updates and notifications
+- [ ] Dependency health checks and security scanning
+
 ### General Improvements
 - [ ] Plugin system for extensibility
 - [ ] Configuration validation
@@ -145,6 +155,25 @@ repositories:
 - [ ] VM backup and restore functionality
 - [ ] VM monitoring and health checks
 - [ ] VM resource usage analytics
+
+## Configuration
+
+The tool uses a YAML configuration file located at `~/.dev-manager/config.yaml`. You can specify a different location using the `--config` flag.
+
+Example configuration:
+```yaml
+workspace_path: ~/workspace
+repositories:
+  - name: my-project
+    url: https://github.com/username/my-project.git
+    path: ~/workspace/my-project
+    branch: main
+    last_sync: "2024-03-20T10:00:00Z"
+dependencies:
+  - name: go
+    version: 1.21.0
+    source: https://go.dev/dl/go1.21.0.darwin-amd64.tar.gz
+```
 
 ## Contributing
 

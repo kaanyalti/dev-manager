@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"dev-manager/pkg/config"
+	"dev-manager/pkg/deps"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -113,9 +114,19 @@ Example:
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize dev-manager configuration",
+	Long: `Initialize dev-manager configuration and install default dependencies.
+This will:
+1. Create the configuration file
+2. Set up the workspace directory
+3. Install default dependencies
+
+Example:
+  dev-manager init
+  dev-manager init --workspace ~/dev`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfgPath, _ := cmd.Flags().GetString("file")
 		workspace, _ := cmd.Flags().GetString("workspace")
+		installDeps, _ := cmd.Flags().GetBool("install-deps")
 
 		// Default workspace: $HOME/dev
 		if workspace == "" {
@@ -149,12 +160,42 @@ var initCmd = &cobra.Command{
 			cfg.UpdateFrequency = 2 * time.Hour
 		}
 
+		// Add default dependencies if none exist
+		if len(cfg.Dependencies) == 0 {
+			cfg.Dependencies = []config.Dependency{
+				{
+					Name:    "go",
+					Version: "1.21.0",
+					Source:  "https://go.dev/dl/go1.21.0.darwin-amd64.tar.gz",
+				},
+				{
+					Name:    "node",
+					Version: "20.11.1",
+					Source:  "https://nodejs.org/dist/v20.11.1/node-v20.11.1-darwin-x64.tar.gz",
+				},
+			}
+		}
+
 		// Save configuration
 		if err := mgr.Save(); err != nil {
 			log.Fatalf("failed to save configuration: %v", err)
 		}
 
 		fmt.Printf("Configuration initialized at %s\n", mgr.Path())
+		fmt.Printf("Workspace directory: %s\n", cfg.WorkspacePath)
+
+		// Install dependencies if requested
+		if installDeps {
+			fmt.Println("\nInstalling dependencies...")
+			depMgr := deps.New(filepath.Join(cfg.WorkspacePath, "deps"))
+			for _, dep := range cfg.Dependencies {
+				if err := depMgr.Install(dep, false); err != nil {
+					log.Printf("failed to install %s: %v", dep.Name, err)
+					continue
+				}
+				fmt.Printf("Installed %s\n", dep.Name)
+			}
+		}
 	},
 }
 
@@ -164,8 +205,10 @@ func init() {
 	configCmd.AddCommand(configShowCmd)
 	configShowCmd.Flags().Bool("raw", false, "Show raw YAML content")
 	configCmd.AddCommand(configValidateCmd)
+	configCmd.PersistentFlags().StringP("file", "f", "", "Path to the configuration file")
 
 	// Add init command
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().StringP("workspace", "w", "", "Path to the workspace directory")
+	initCmd.Flags().BoolP("install-deps", "i", false, "Install default dependencies")
 }
