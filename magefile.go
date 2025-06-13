@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	openai "github.com/sashabaranov/go-openai"
@@ -77,21 +78,61 @@ func GitCommit() error {
 		return fmt.Errorf("failed to get changed files: %w", err)
 	}
 
+	changedFiles := strings.Split(strings.TrimSpace(string(filesOutput)), "\n")
+	if len(changedFiles) == 0 {
+		return fmt.Errorf("no changes to commit")
+	}
+
+	// Interactive file review loop
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		// Show changed files
+		fmt.Println("\nChanged files:")
+		for i, file := range changedFiles {
+			fmt.Printf("%d. %s\n", i+1, file)
+		}
+
+		// Ask for file number to review
+		fmt.Print("\nEnter file number to review (or press enter to continue): ")
+		fileNumStr, err := reader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("failed to read file number: %w", err)
+		}
+
+		fileNumStr = strings.TrimSpace(fileNumStr)
+		if fileNumStr == "" {
+			break
+		}
+
+		fileNum, err := strconv.Atoi(fileNumStr)
+		if err != nil || fileNum < 1 || fileNum > len(changedFiles) {
+			fmt.Println("Invalid file number")
+			continue
+		}
+
+		// Show diff for selected file
+		fileDiffCmd := exec.Command("git", "diff", "--cached", "--", changedFiles[fileNum-1])
+		fileDiffOutput, err := fileDiffCmd.Output()
+		if err != nil {
+			return fmt.Errorf("failed to get file diff: %w", err)
+		}
+
+		fmt.Printf("\nDiff for %s:\n", changedFiles[fileNum-1])
+		fmt.Println(string(fileDiffOutput))
+	}
+
 	// Generate commit message using OpenAI
 	commitMsg, err := generateCommitMessageWithLLM(string(diffOutput), apiKey)
 	if err != nil {
 		return fmt.Errorf("failed to generate commit message: %w", err)
 	}
 
-	// Show changed files and proposed commit message
-	fmt.Println("\nChanged files:")
-	fmt.Println(string(filesOutput))
+	// Show proposed commit message
 	fmt.Println("\nProposed commit message:")
 	fmt.Println(commitMsg)
 	fmt.Println("\nDo you want to commit and push these changes? (y/N): ")
 
 	// Get user confirmation
-	reader := bufio.NewReader(os.Stdin)
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("failed to read user input: %w", err)
