@@ -1,14 +1,13 @@
 # Dev Manager
 
-A command-line tool for managing development repositories and SSH keys.
+A command-line tool for managing development environments and tools.
 
 ## Features
 
-- Repository management (add, remove, sync)
-- SSH key management (generate, add to agent, print public key)
-- Configuration management
-- Tool management
-- Dependency management
+- SSH key management
+- Git repository management
+- Development environment setup
+- And more...
 
 ## Installation
 
